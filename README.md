@@ -16,6 +16,12 @@
   <a href="README.es.md">🇪🇸 Español</a>
 </p>
 
+
+
+https://github.com/user-attachments/assets/f281b654-a0a2-4883-b09c-21aa2cd3efb4
+
+
+
 ## Description
 
 DodoClip is a lightweight, native clipboard manager built with SwiftUI and SwiftData. It helps you keep track of everything you copy and access your clipboard history instantly.
@@ -24,6 +30,7 @@ DodoClip is a lightweight, native clipboard manager built with SwiftUI and Swift
 
 - **Clipboard history** - Automatically saves everything you copy with persistence
 - **Search** - Quickly find items in your clipboard history
+- **OCR support** - Find any strings in your images you copied
 - **Keyboard shortcuts** - Access your clipboard with global hotkeys (⇧⌘V)
 - **Pinned items** - Keep important clips always accessible
 - **Smart collections** - Auto-organized by type (Links, Images, Colors)
