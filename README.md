@@ -8,6 +8,14 @@
   A free, open-source clipboard manager for macOS.
 </p>
 
+<p align="center">
+  <a href="README.md">English</a> •
+  <a href="README.de.md">Deutsch</a> •
+  <a href="README.tr.md">Türkçe</a> •
+  <a href="README.fr.md">Français</a> •
+  <a href="README.es.md">Español</a>
+</p>
+
 ## Description
 
 DodoClip is a lightweight, native clipboard manager built with SwiftUI and SwiftData. It helps you keep track of everything you copy and access your clipboard history instantly.
