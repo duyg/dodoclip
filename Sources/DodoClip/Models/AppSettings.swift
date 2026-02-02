@@ -60,6 +60,9 @@ final class AppSettings {
     var closeOnFocusLoss: Bool?
     var showCloseButton: Bool?
 
+    // Auto-cleanup
+    var autoDeleteAfterDays: Int?  // nil or 0 means disabled
+
     // Pause state
     var isPaused: Bool
     var pauseUntil: Date?
@@ -80,6 +83,7 @@ final class AppSettings {
         self.soundEnabled = false
         self.closeOnFocusLoss = false
         self.showCloseButton = true
+        self.autoDeleteAfterDays = 0  // Disabled by default
         self.isPaused = false
         self.pauseUntil = nil
     }

@@ -53,6 +53,13 @@
 "settings.general.panel" = "Panel";
 "settings.general.closeOnFocusLoss" = "Close when clicking outside";
 "settings.general.showCloseButton" = "Show close button";
+"settings.general.cleanup" = "Cleanup";
+"settings.general.autoDelete" = "Auto-delete after";
+"settings.general.autoDeleteNever" = "Never";
+"settings.general.autoDeleteDays" = "%d days";
+"settings.general.export" = "Export";
+"settings.general.exportLinks" = "Export links";
+"settings.general.exportAll" = "Export all items";
 
 /* Shortcuts Settings */
 "settings.shortcuts.global" = "Global Shortcuts";

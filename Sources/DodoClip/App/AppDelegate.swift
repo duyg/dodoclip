@@ -36,6 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Show first-run HUD
         showFirstRunHUDIfNeeded()
+
+        // Perform auto-cleanup if enabled
+        clipboardMonitor.checkAutoCleanup()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

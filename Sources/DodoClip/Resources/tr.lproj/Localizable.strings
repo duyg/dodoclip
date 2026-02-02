@@ -53,6 +53,13 @@
 "settings.general.panel" = "Panel";
 "settings.general.closeOnFocusLoss" = "Dışarı tıklandığında kapat";
 "settings.general.showCloseButton" = "Kapatma düğmesini göster";
+"settings.general.cleanup" = "Temizlik";
+"settings.general.autoDelete" = "Otomatik sil";
+"settings.general.autoDeleteNever" = "Asla";
+"settings.general.autoDeleteDays" = "%d gün sonra";
+"settings.general.export" = "Dışa aktar";
+"settings.general.exportLinks" = "Linkleri dışa aktar";
+"settings.general.exportAll" = "Tümünü dışa aktar";
 
 /* Shortcuts Settings */
 "settings.shortcuts.global" = "Genel Kısayollar";

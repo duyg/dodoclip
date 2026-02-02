@@ -97,6 +97,15 @@ extension L10n {
             static var panel: String { L10n.tr("settings.general.panel") }
             static var closeOnFocusLoss: String { L10n.tr("settings.general.closeOnFocusLoss") }
             static var showCloseButton: String { L10n.tr("settings.general.showCloseButton") }
+            static var cleanup: String { L10n.tr("settings.general.cleanup") }
+            static var autoDelete: String { L10n.tr("settings.general.autoDelete") }
+            static var autoDeleteNever: String { L10n.tr("settings.general.autoDeleteNever") }
+            static func autoDeleteDays(_ days: Int) -> String {
+                String(format: L10n.tr("settings.general.autoDeleteDays"), days)
+            }
+            static var export: String { L10n.tr("settings.general.export") }
+            static var exportLinks: String { L10n.tr("settings.general.exportLinks") }
+            static var exportAll: String { L10n.tr("settings.general.exportAll") }
         }
 
         enum Shortcuts {

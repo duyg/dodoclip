@@ -13,7 +13,6 @@ struct PanelContentView: View {
     @State private var selectedItemIDs: Set<UUID> = []
     @State private var selectedCollectionID: UUID?
     @State private var selectedTypes: Set<ClipContentType> = []
-    @State private var showFilters = false
 
     // Data (items now come from clipboardMonitor)
     let collections: [Collection]
@@ -90,9 +89,20 @@ struct PanelContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top bar: Search + Filters + Close button
-            HStack(spacing: 12) {
+            // Top bar: Search + Filters + Settings + Close button
+            HStack(spacing: 8) {
                 topBar
+
+                // Settings button
+                Button {
+                    SettingsWindowController.shared.showSettings()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(Theme.Colors.textSecondary.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                .help("Settings (⌘,)")
 
                 // Close button (if enabled in settings)
                 if settingsService.showCloseButton {
@@ -110,13 +120,7 @@ struct PanelContentView: View {
             .padding(.horizontal, Theme.Dimensions.panelPadding)
             .padding(.top, Theme.Dimensions.panelPadding)
 
-            if showFilters {
-                FilterChipsRow(selectedTypes: $selectedTypes)
-                    .padding(.vertical, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-
-            // Collection tabs
+            // Collection tabs (includes type filtering via smart collections)
             CollectionTabsView(
                 selectedCollectionID: $selectedCollectionID,
                 collections: collections
@@ -138,7 +142,9 @@ struct PanelContentView: View {
         }
         .panelBackground()
         .onAppear {
-            isSearchFocused = true
+            // Don't auto-focus search bar - user should click it or press ⌘F
+            // This prevents accidentally pasting into search bar instead of target app
+            isSearchFocused = false
             selectFirstItemIfNeeded()
         }
         .onKeyPress(.escape) {
@@ -196,11 +202,17 @@ struct PanelContentView: View {
             return .ignored
         }
         .onKeyPress(characters: CharacterSet(charactersIn: "fF")) { press in
-            // ⌘F to toggle filters
+            // ⌘F to focus search bar
             if press.modifiers.contains(.command) {
-                withAnimation(Theme.Animation.filterChip) {
-                    showFilters.toggle()
-                }
+                isSearchFocused = true
+                return .handled
+            }
+            return .ignored
+        }
+        .onKeyPress(characters: CharacterSet(charactersIn: ",")) { press in
+            // ⌘, to open settings
+            if press.modifiers.contains(.command) {
+                SettingsWindowController.shared.showSettings()
                 return .handled
             }
             return .ignored
@@ -268,10 +280,8 @@ struct PanelContentView: View {
     private var emptyStateSubtitle: String {
         if !searchText.isEmpty {
             return "Try a different search term"
-        } else if !selectedTypes.isEmpty {
-            return "Try removing some filters"
         } else if selectedCollectionID != nil {
-            return "Add clips to this collection from the context menu"
+            return "No items match this filter"
         } else {
             return "Copy something to see it here\nPress ⇧⌘V anytime to open"
         }
@@ -438,27 +448,11 @@ struct PanelContentView: View {
     // MARK: - Top Bar
 
     private var topBar: some View {
-        HStack(spacing: 12) {
-            SearchBar(
-                searchText: $searchText,
-                isSearchFocused: $isSearchFocused,
-                onSearch: { _ in }
-            )
-
-            // Filter toggle
-            Button {
-                withAnimation(Theme.Animation.filterChip) {
-                    showFilters.toggle()
-                }
-            } label: {
-                Image(systemName: showFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                    .font(.system(size: 18))
-                    .foregroundColor(showFilters || !selectedTypes.isEmpty ? Theme.Colors.accent : Theme.Colors.textSecondary)
-            }
-            .buttonStyle(.plain)
-            .help("Filter by type (⌘F)")
-
-        }
+        SearchBar(
+            searchText: $searchText,
+            isSearchFocused: $isSearchFocused,
+            onSearch: { _ in }
+        )
     }
 
     // MARK: - Cards Scroll View

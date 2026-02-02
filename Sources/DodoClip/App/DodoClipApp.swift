@@ -99,6 +99,34 @@ struct GeneralSettingsTab: View {
                     set: { settingsService.showCloseButton = $0 }
                 ))
             }
+
+            Section(L10n.Settings.General.cleanup) {
+                Picker(L10n.Settings.General.autoDelete, selection: Binding(
+                    get: { settingsService.autoDeleteAfterDays },
+                    set: { settingsService.autoDeleteAfterDays = $0 }
+                )) {
+                    Text(L10n.Settings.General.autoDeleteNever).tag(0)
+                    Text(L10n.Settings.General.autoDeleteDays(7)).tag(7)
+                    Text(L10n.Settings.General.autoDeleteDays(14)).tag(14)
+                    Text(L10n.Settings.General.autoDeleteDays(30)).tag(30)
+                    Text(L10n.Settings.General.autoDeleteDays(90)).tag(90)
+                }
+            }
+
+            Section(L10n.Settings.General.export) {
+                Button(L10n.Settings.General.exportLinks) {
+                    ExportService.shared.exportLinks(
+                        items: ClipboardMonitor.shared.items,
+                        format: .text
+                    )
+                }
+                Button(L10n.Settings.General.exportAll) {
+                    ExportService.shared.exportAll(
+                        items: ClipboardMonitor.shared.items,
+                        format: .csv
+                    )
+                }
+            }
         }
         .formStyle(.grouped)
         .padding()

@@ -68,9 +68,14 @@ final class ClipboardMonitor: ObservableObject {
     private func saveContext() {
         guard let context = modelContext else { return }
         do {
-            try context.save()
+            // Only save if there are actual changes
+            if context.hasChanges {
+                try context.save()
+            }
         } catch {
             print("Failed to save context: \(error)")
+            // Rollback on error to prevent inconsistent state
+            context.rollback()
         }
     }
 
@@ -156,8 +161,17 @@ final class ClipboardMonitor: ObservableObject {
         guard let content = extractContent(from: pasteboard) else { return }
 
         // Check for duplicates - if duplicate, move to top
-        if let existingIndex = items.firstIndex(where: { $0.content == content }) {
+        if let existingIndex = items.firstIndex(where: { item in
+            // Safely check if item is still valid before comparing
+            guard !item.isDeleted else { return false }
+            return item.content == content
+        }) {
             let existing = items.remove(at: existingIndex)
+            // Double-check item is still valid before accessing
+            guard !existing.isDeleted else {
+                items.insert(existing, at: existingIndex) // Put it back
+                return
+            }
             existing.markUsed()
             items.insert(existing, at: 0)
             saveContext()
@@ -201,11 +215,16 @@ final class ClipboardMonitor: ObservableObject {
 
     /// Perform OCR on an image item and store the recognized text
     private func performOCR(for item: ClipItem) async {
-        guard let content = item.content,
+        // Check if item is still valid before accessing
+        guard !item.isDeleted,
+              let content = item.content,
               content.type == .image,
               let recognizedText = await OCRService.shared.recognizeText(in: content.data) else {
             return
         }
+
+        // Double-check item is still valid after async operation
+        guard !item.isDeleted else { return }
 
         // Update the item with OCR text
         item.ocrText = recognizedText
@@ -218,6 +237,9 @@ final class ClipboardMonitor: ObservableObject {
         guard let metadata = await LinkMetadataService.shared.fetchMetadata(for: urlString) else {
             return
         }
+
+        // Check if item is still valid after async operation
+        guard !item.isDeleted else { return }
 
         // Update the item with fetched metadata
         item.updateLinkMetadata(
@@ -289,6 +311,9 @@ final class ClipboardMonitor: ObservableObject {
     }
 
     private func enforceHistoryLimit() {
+        // Filter out any already deleted items first
+        items = items.filter { !$0.isDeleted }
+
         // Keep pinned items regardless of limit
         let pinnedItems = items.filter { $0.isPinned }
         var unpinnedItems = items.filter { !$0.isPinned }
@@ -298,6 +323,7 @@ final class ClipboardMonitor: ObservableObject {
             // Delete excess items from SwiftData
             let itemsToDelete = Array(unpinnedItems.dropFirst(maxUnpinned))
             for item in itemsToDelete {
+                guard !item.isDeleted else { continue }
                 modelContext?.delete(item)
             }
             unpinnedItems = Array(unpinnedItems.prefix(maxUnpinned))
@@ -367,5 +393,42 @@ final class ClipboardMonitor: ObservableObject {
 
     func resetNewClipCount() {
         newClipCount = 0
+    }
+
+    // MARK: - Auto Cleanup
+
+    /// Delete unpinned items older than specified days
+    func performAutoCleanup(olderThanDays days: Int) {
+        guard days > 0 else { return }
+
+        let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+
+        // Find items to delete (older than cutoff, not pinned, not already deleted)
+        let itemsToDelete = items.filter { item in
+            !item.isPinned && !item.isDeleted && item.createdAt < cutoffDate
+        }
+
+        guard !itemsToDelete.isEmpty else { return }
+
+        // Delete items
+        for item in itemsToDelete {
+            modelContext?.delete(item)
+            if let index = items.firstIndex(where: { $0.id == item.id }) {
+                items.remove(at: index)
+            }
+        }
+
+        saveContext()
+        objectWillChange.send()
+
+        print("Auto-cleanup: deleted \(itemsToDelete.count) items older than \(days) days")
+    }
+
+    /// Check and perform auto-cleanup based on settings
+    func checkAutoCleanup() {
+        let days = SettingsService.shared.autoDeleteAfterDays
+        if days > 0 {
+            performAutoCleanup(olderThanDays: days)
+        }
     }
 }

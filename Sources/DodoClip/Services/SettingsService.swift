@@ -143,6 +143,18 @@ final class SettingsService: ObservableObject {
         }
     }
 
+    var autoDeleteAfterDays: Int {
+        get { settings.autoDeleteAfterDays ?? 0 }  // 0 means disabled
+        set {
+            settings.autoDeleteAfterDays = newValue
+            save()
+            // Trigger cleanup if enabled
+            if newValue > 0 {
+                ClipboardMonitor.shared.performAutoCleanup(olderThanDays: newValue)
+            }
+        }
+    }
+
     var ignoredAppBundleIDs: [String] {
         get { settings.ignoredAppBundleIDs }
         set {

@@ -132,6 +132,13 @@ struct ClipCardView: View {
 
             Spacer()
 
+            // Pin indicator (always visible when pinned)
+            if item.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(item.contentType == .color ? colorCardTextPrimary : Theme.Colors.pinned)
+            }
+
             // Keyboard shortcut indicator
             if let index = index, index < 9 {
                 Text("⌘\(index + 1)")
