@@ -14,6 +14,10 @@ struct PanelContentView: View {
     @State private var selectedCollectionID: UUID?
     @State private var selectedTypes: Set<ClipContentType> = []
 
+    // Performance: limit visible items to improve render performance
+    private let initialVisibleLimit = 50
+    @State private var visibleLimit = 50
+
     // Data (items now come from clipboardMonitor)
     let collections: [Collection]
     let isCompact: Bool
@@ -76,8 +80,30 @@ struct PanelContentView: View {
         filteredItems.filter { !$0.isPinned }
     }
 
+    /// Limited unpinned items for performance (pinned always shown)
+    private var visibleUnpinnedItems: [ClipItem] {
+        let pinCount = pinnedItems.count
+        let remainingLimit = max(0, visibleLimit - pinCount)
+        return Array(unpinnedItems.prefix(remainingLimit))
+    }
+
     private var allItems: [ClipItem] {
         pinnedItems + unpinnedItems
+    }
+
+    /// Items currently visible (for display)
+    private var visibleItems: [ClipItem] {
+        pinnedItems + visibleUnpinnedItems
+    }
+
+    /// Whether there are more items to load
+    private var hasMoreItems: Bool {
+        visibleUnpinnedItems.count < unpinnedItems.count
+    }
+
+    /// Count of hidden items
+    private var hiddenItemsCount: Int {
+        unpinnedItems.count - visibleUnpinnedItems.count
     }
 
     private var selectedIndex: Int? {
@@ -146,6 +172,14 @@ struct PanelContentView: View {
             // This prevents accidentally pasting into search bar instead of target app
             isSearchFocused = false
             selectFirstItemIfNeeded()
+        }
+        .onChange(of: searchText) { _, _ in
+            // Reset visible limit when search changes
+            visibleLimit = initialVisibleLimit
+        }
+        .onChange(of: selectedCollectionID) { _, _ in
+            // Reset visible limit when collection changes
+            visibleLimit = initialVisibleLimit
         }
         .onKeyPress(.escape) {
             if !searchText.isEmpty {
@@ -308,9 +342,15 @@ struct PanelContentView: View {
                     .foregroundColor(Theme.Colors.accent)
             }
 
-            Text("\(allItems.count) clips")
-                .font(Theme.Typography.keyboardHintLabel)
-                .foregroundColor(Theme.Colors.textSecondary.opacity(0.7))
+            if hasMoreItems {
+                Text("\(visibleItems.count)/\(allItems.count) clips")
+                    .font(Theme.Typography.keyboardHintLabel)
+                    .foregroundColor(Theme.Colors.textSecondary.opacity(0.7))
+            } else {
+                Text("\(allItems.count) clips")
+                    .font(Theme.Typography.keyboardHintLabel)
+                    .foregroundColor(Theme.Colors.textSecondary.opacity(0.7))
+            }
         }
         .padding(.horizontal, Theme.Dimensions.panelPadding)
         .padding(.vertical, 8)
@@ -474,9 +514,14 @@ struct PanelContentView: View {
                         .padding(.vertical, 20)
                     }
 
-                    // Regular items
-                    ForEach(Array(unpinnedItems.enumerated()), id: \.element.id) { index, item in
+                    // Regular items (limited for performance)
+                    ForEach(Array(visibleUnpinnedItems.enumerated()), id: \.element.id) { index, item in
                         cardView(for: item, index: pinnedItems.count + index)
+                    }
+
+                    // Load more button if there are hidden items
+                    if hasMoreItems {
+                        loadMoreButton
                     }
                 }
                 .padding(.horizontal, Theme.Dimensions.panelPadding)
@@ -490,6 +535,32 @@ struct PanelContentView: View {
                 }
             }
         }
+    }
+
+    private var loadMoreButton: some View {
+        Button {
+            withAnimation {
+                visibleLimit += 50
+            }
+        } label: {
+            VStack(spacing: 8) {
+                Image(systemName: "ellipsis.circle")
+                    .font(.system(size: 24))
+                    .foregroundColor(Theme.Colors.accent)
+
+                Text("+\(hiddenItemsCount) more")
+                    .font(Theme.Typography.cardMeta)
+                    .foregroundColor(Theme.Colors.textSecondary)
+            }
+            .frame(width: 80, height: Theme.Dimensions.cardHeight - 20)
+            .background(Theme.Colors.cardBackground.opacity(0.5))
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Dimensions.cardCornerRadius))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Dimensions.cardCornerRadius)
+                    .stroke(Theme.Colors.divider, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var pinnedSection: some View {

@@ -15,6 +15,14 @@ struct ClipCardView: View {
 
     @State private var isHovered: Bool = false
 
+    // Cached content - decoded once when view appears
+    @State private var cachedContent: ClipContent?
+    @State private var cachedAppIcon: NSImage?
+    @State private var cachedThumbnail: NSImage?
+    @State private var cachedFavicon: NSImage?
+    @State private var cachedLinkImage: NSImage?
+    @State private var cachedColorValue: NSColor?
+
     private var cardWidth: CGFloat {
         isCompact ? Theme.Dimensions.cardWidthCompact : Theme.Dimensions.cardWidth
     }
@@ -25,9 +33,7 @@ struct ClipCardView: View {
 
     @ViewBuilder
     private var cardBackground: some View {
-        if item.contentType == .color,
-           let content = item.content,
-           let color = content.colorValue {
+        if item.contentType == .color, let color = cachedColorValue {
             Color(nsColor: color)
         } else {
             Color.clear
@@ -36,9 +42,7 @@ struct ClipCardView: View {
 
     /// Whether this is a color card with a light background (needs dark text)
     private var isLightColorCard: Bool {
-        guard item.contentType == .color,
-              let content = item.content,
-              let color = content.colorValue else { return false }
+        guard item.contentType == .color, let color = cachedColorValue else { return false }
         return color.isLightColor
     }
 
@@ -89,6 +93,47 @@ struct ClipCardView: View {
             contextMenuContent
         }
         .help(cardTooltip)
+        .onAppear {
+            loadCachedContent()
+        }
+    }
+
+    /// Load and cache content once when the view appears
+    private func loadCachedContent() {
+        // Only load if not already cached
+        guard cachedContent == nil else { return }
+
+        // Decode content once
+        cachedContent = item.content
+
+        // Cache app icon
+        if let bundleID = item.sourceAppBundleID {
+            cachedAppIcon = ImageCacheService.shared.appIcon(for: bundleID)
+        }
+
+        // Cache type-specific content
+        switch item.contentType {
+        case .image:
+            if let content = cachedContent {
+                cachedThumbnail = ImageCacheService.shared.thumbnail(
+                    for: item.id,
+                    imageData: content.activeData
+                )
+            }
+        case .link:
+            if let content = cachedContent {
+                if let faviconData = content.faviconData {
+                    cachedFavicon = ImageCacheService.shared.favicon(for: item.id, data: faviconData)
+                }
+                if let linkImageData = content.linkImageData {
+                    cachedLinkImage = ImageCacheService.shared.linkImage(for: item.id, data: linkImageData)
+                }
+            }
+        case .color:
+            cachedColorValue = cachedContent?.colorValue
+        default:
+            break
+        }
     }
 
     private var cardTooltip: String {
@@ -107,8 +152,8 @@ struct ClipCardView: View {
 
     private var cardHeader: some View {
         HStack(spacing: 8) {
-            // App icon
-            if let icon = item.sourceAppIcon {
+            // App icon (cached)
+            if let icon = cachedAppIcon {
                 Image(nsImage: icon)
                     .resizable()
                     .frame(width: Theme.Dimensions.appIconSize, height: Theme.Dimensions.appIconSize)
@@ -210,8 +255,8 @@ struct ClipCardView: View {
 
     private var imageContent: some View {
         Group {
-            if let content = item.content, let image = content.imageValue {
-                Image(nsImage: image)
+            if let thumbnail = cachedThumbnail {
+                Image(nsImage: thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
@@ -234,8 +279,8 @@ struct ClipCardView: View {
     private var linkContent: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                // Favicon or link icon
-                if let content = item.content, let favicon = content.favicon {
+                // Favicon or link icon (cached)
+                if let favicon = cachedFavicon {
                     Image(nsImage: favicon)
                         .resizable()
                         .frame(width: 16, height: 16)
@@ -254,9 +299,9 @@ struct ClipCardView: View {
                     .foregroundColor(Theme.Colors.textSecondary.opacity(0.5))
             }
 
-            // OG Image preview
-            if let content = item.content, let ogImage = content.linkImage {
-                Image(nsImage: ogImage)
+            // OG Image preview (cached thumbnail)
+            if let linkImage = cachedLinkImage {
+                Image(nsImage: linkImage)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity)

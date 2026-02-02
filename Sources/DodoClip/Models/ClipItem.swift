@@ -89,11 +89,18 @@ final class ClipItem {
         }
     }
 
-    /// Relative time string
-    var relativeTimeString: String {
+    /// Shared formatter for relative time (avoid creating new one each time)
+    @MainActor
+    private static let relativeTimeFormatter: RelativeDateTimeFormatter = {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: createdAt, relativeTo: Date())
+        return formatter
+    }()
+
+    /// Relative time string
+    @MainActor
+    var relativeTimeString: String {
+        Self.relativeTimeFormatter.localizedString(for: createdAt, relativeTo: Date())
     }
 
     /// Source app icon
