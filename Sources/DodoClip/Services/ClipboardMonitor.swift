@@ -336,8 +336,10 @@ final class ClipboardMonitor: ObservableObject {
             unpinnedItems = Array(unpinnedItems.prefix(maxUnpinned))
         }
 
-        items = pinnedItems + unpinnedItems
-        items.sort { $0.createdAt > $1.createdAt }
+        // Sort pinned and unpinned separately, then combine
+        let sortedPinned = pinnedItems.sorted { $0.createdAt > $1.createdAt }
+        let sortedUnpinned = unpinnedItems.sorted { $0.createdAt > $1.createdAt }
+        items = sortedPinned + sortedUnpinned
     }
 
     // MARK: - Pause Control
@@ -395,6 +397,7 @@ final class ClipboardMonitor: ObservableObject {
     func pinItem(_ item: ClipItem) {
         item.togglePin()
         saveContext()
+        enforceHistoryLimit()  // Re-sort to move pinned items to top
         objectWillChange.send()
     }
 

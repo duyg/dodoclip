@@ -298,7 +298,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func togglePin(_ item: ClipItem) {
-        item.togglePin()
         clipboardMonitor.pinItem(item)
         // Don't recreate panel - ClipboardMonitor publishes changes
     }
