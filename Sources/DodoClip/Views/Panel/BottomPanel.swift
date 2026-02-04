@@ -509,7 +509,8 @@ final class BottomPanel: NSPanel {
     override func keyDown(with event: NSEvent) {
         // Handle Escape to close
         if event.keyCode == 53 { // Escape key
-            hide()
+            // Use controller's hide method to close all windows (panel, overlay, preview)
+            BottomPanelController.shared.hide()
             return
         }
         super.keyDown(with: event)
@@ -519,7 +520,8 @@ final class BottomPanel: NSPanel {
         super.resignKey()
         // Hide when losing focus if setting is enabled
         if SettingsService.shared.closeOnFocusLoss {
-            hide()
+            // Use controller's hide method to close all windows
+            BottomPanelController.shared.hide()
         }
     }
 }
@@ -558,7 +560,10 @@ final class BottomPanelController: ObservableObject {
         defer: false
       )
       overlayWindow?.onClickOutside = { [weak self] in
-        self?.hide()
+        // Only hide when closeOnFocusLoss setting is enabled
+        if SettingsService.shared.closeOnFocusLoss {
+          self?.hide()
+        }
       }
     }
 
